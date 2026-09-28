@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ウポポ輪唱リズムゲーム</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#eee9dc;color:#222;font-family:system-ui,"Yu Gothic",sans-serif;text-align:center}
+h1{font-size:28px;margin:16px 8px 4px}.sub{color:#666;margin:0 8px 10px}
+button#start{font-size:21px;padding:13px 30px;border:0;border-radius:14px;cursor:pointer;background:#fff}
+#game{display:none}
+#countdown{font-size:32px;font-weight:bold;min-height:90px;padding:15px 8px}
+#countText{font-size:30px}
+#score{font-size:23px;font-weight:bold;margin:3px}
+#beat{height:34px;font-size:22px;font-weight:bold}
+.stage{position:relative;width:min(700px,94vw);aspect-ratio:1;margin:0 auto}
+.core{position:absolute;left:50%;top:50%;width:55%;height:55%;transform:translate(-50%,-50%);background:#050505;border-radius:50%;box-shadow:0 0 0 8px #333}
+.player{position:absolute;width:150px;z-index:5}
+.playerName{font-size:18px;font-weight:bold;margin-bottom:5px;background:#fff9;padding:3px 8px;border-radius:8px}
+.status{height:30px;font-size:18px;font-weight:bold;color:#777}
+.pad{width:86px;height:86px;border-radius:50%;background:#c9151d;border:7px solid #851018;cursor:pointer}
+.player.active .pad{box-shadow:0 0 0 3px #555}
+.player.active.flash .pad{background:#fff15a;border-color:#fff;box-shadow:0 0 32px 13px #ffd500;transform:scale(1.13)}
+#player1{left:50%;top:10%;transform:translateX(-50%)}
+#player2{left:3%;top:61%}
+#player3{right:3%;top:61%}
+#result{display:none;width:min(620px,90vw);margin:15px auto;padding:25px;background:white;border-radius:16px;font-size:22px}
+#result button{font-size:18px;padding:10px 24px;border:0;border-radius:10px;margin-top:12px}
+.lyrics{width:min(700px,90vw);margin:8px auto;padding:12px;background:#fff;border-radius:14px}
+#ainu{font-size:22px;font-weight:bold}#roman{color:#666}#jp{font-size:17px;margin-top:4px}
+.info{font-size:13px;color:#666;margin:7px}
+</style>
+</head>
+<body>
+
+<h1>チュㇷ゚カー ワー　カームイ ラン</h1>
+<div class="sub">3人でつくるウポポ輪唱リズムゲーム</div>
+
+<button id="start">▶ スタート</button>
+
+<div id="game">
+  <div id="countdown">
+    <div id="countText"></div>
+  </div>
+  <div id="score">スコア：0</div>
+  <div id="beat">準備</div>
+
+  <div class="stage">
+    <div class="core"></div>
+
+    <div class="player" id="player1">
+      <div class="playerName">プレイヤー1</div>
+      <div class="status" id="status1">音源</div>
+      <button class="pad" id="pad1"></button>
+    </div>
+
+    <div class="player" id="player2">
+      <div class="playerName">プレイヤー2</div>
+      <div class="status" id="status2">待機</div>
+      <button class="pad" id="pad2"></button>
+    </div>
+
+    <div class="player" id="player3">
+      <div class="playerName">プレイヤー3</div>
+      <div class="status" id="status3">待機</div>
+      <button class="pad" id="pad3"></button>
+    </div>
+  </div>
+
+  <div class="lyrics">
+    <div id="ainu">チュㇷ゚カー ワー　カームイ ラン</div>
+    <div id="roman">cupka wa kamuy ran</div>
+    <div id="jp">東の方から神が降りてきて</div>
+  </div>
+  <div class="info">1拍目＝点灯（強）／2拍目＝消灯（弱）</div>
+
+  <audio id="audio" src="chupka_wa_kamuy_ran.m4a" preload="auto"></audio>
+</div>
+
+<div id="result">
+  <div>🎉 結果発表 🎉</div>
+  <div id="resultScore" style="font-size:30px;font-weight:bold;margin:12px"></div>
+  <div>おつかれさまでした！</div>
+  <button id="again">もう一度</button>
+</div>
+
+<script>
+/*
+  音源内の歌詞位置。
+  まずはこの位置でゲームを動かせるようにしてあります。
+  音源と表示の位置がずれていた場合は、この2つだけ調整できます。
+*/
+const PLAYER2_START = 1.6; // 「チュプカーワー」付近
+const PLAYER3_START = 3.8; // 「カームイラン」付近
+
+const BEAT_MS = 1000; // 2拍子：1拍1秒
+const HIT_WINDOW = 350;
+
+const audio=document.getElementById("audio");
+const start=document.getElementById("start");
+const again=document.getElementById("again");
+const game=document.getElementById("game");
+const result=document.getElementById("result");
+const countText=document.getElementById("countText");
+const beatText=document.getElementById("beat");
+const scoreText=document.getElementById("score");
+const players=[
+  document.getElementById("player1"),
+  document.getElementById("player2"),
+  document.getElementById("player3")
+];
+const statuses=[
+  document.getElementById("status1"),
+  document.getElementById("status2"),
+  document.getElementById("status3")
+];
+const pads=[
+  document.getElementById("pad1"),
+  document.getElementById("pad2"),
+  document.getElementById("pad3")
+];
+
+let running=false;
+let score=0;
+let beatNo=0;
+let beatTimer=null;
+let animationTimer=null;
+let startedAt=0;
+let active=[true,false,false];
+let lastFlash=false;
+let hitAt=0;
+
+function resetScreen(){
+  game.style.display="none";
+  result.style.display="none";
+  start.style.display="inline-block";
+  countText.textContent="";
+  players.forEach((p,i)=>{
+    p.classList.remove("active","flash");
+    statuses[i].textContent=i===0?"音源":"待機";
+  });
+}
+
+function countdown(){
+  return new Promise(resolve=>{
+    let n=0;
+    const words=[
+      "１（シネプ）",
+      "２（トゥ）",
+      "３（レ）",
+      "シノッチャケ アン ロー"
+    ];
+    const next=()=>{
+      if(n<words.length){
+        countText.textContent=words[n++];
+        setTimeout(next,1000);
+      }else{
+        countText.textContent="";
+        resolve();
+      }
+    };
+    next();
+  });
+}
+
+function setFlash(on){
+  lastFlash=on;
+  players.forEach((p,i)=>{
+    p.classList.toggle("flash",on && active[i]);
+  });
+  beatText.textContent=on?"● １拍目（強）":"○ ２拍目（弱）";
+  hitAt=performance.now();
+}
+
+function beatTick(){
+  if(!running)return;
+  const first=(beatNo%2===0);
+  setFlash(first);
+  beatNo++;
+}
+
+function updateParticipants(t){
+  if(!active[1] && t>=PLAYER2_START){
+    active[1]=true;
+    players[1].classList.add("active");
+    statuses[1].textContent="開始！";
+    setTimeout(()=>{if(running)statuses[1].textContent="参加中";},1200);
+  }
+  if(!active[2] && t>=PLAYER3_START){
+    active[2]=true;
+    players[2].classList.add("active");
+    statuses[2].textContent="開始！";
+    setTimeout(()=>{if(running)statuses[2].textContent="参加中";},1200);
+  }
+}
+
+function watchAudio(){
+  if(!running)return;
+  const t=audio.currentTime;
+  updateParticipants(t);
+  if(t>=PLAYER2_START && t<PLAYER2_START+0.8){
+    document.getElementById("ainu").textContent="チュㇷ゚カー ワー";
+    document.getElementById("roman").textContent="cupka wa";
+    document.getElementById("jp").textContent="東の方から";
+  }else if(t>=PLAYER3_START && t<PLAYER3_START+1.0){
+    document.getElementById("ainu").textContent="カームイ ラン";
+    document.getElementById("roman").textContent="kamuy ran";
+    document.getElementById("jp").textContent="神が降りてきて";
+  }
+  animationTimer=requestAnimationFrame(watchAudio);
+}
+
+async function startGame(){
+  if(running)return;
+  running=true;
+  score=0; beatNo=0;
+  active=[true,false,false];
+  scoreText.textContent="スコア：0";
+  start.style.display="none";
+  result.style.display="none";
+  game.style.display="block";
+  players.forEach((p,i)=>{
+    p.classList.remove("active","flash");
+    statuses[i].textContent=i===0?"音源":"待機";
+  });
+  players[0].classList.add("active");
+  await countdown();
+  if(!running)return;
+
+  // カウント終了後に音源開始
+  audio.currentTime=0;
+  try{
+    await audio.play();
+  }catch(e){
+    alert("音源を再生できませんでした。ブラウザで再度スタートしてください。");
+    finishGame();
+    return;
+  }
+
+  startedAt=performance.now();
+  beatNo=0;
+  beatTick();
+  beatTimer=setInterval(beatTick,BEAT_MS);
+  watchAudio();
+}
+
+function hit(i){
+  if(!running || !active[i])return;
+  if(lastFlash && performance.now()-hitAt<=HIT_WINDOW){
+    score+=100;
+    scoreText.textContent="スコア："+score;
+    pads[i].animate(
+      [{transform:"scale(1.2)"},{transform:"scale(1)"}],
+      {duration:120}
+    );
+  }
+}
+pads.forEach((p,i)=>p.addEventListener("pointerdown",()=>hit(i)));
+
+function finishGame(){
+  if(!running)return;
+  running=false;
+  clearInterval(beatTimer);
+  cancelAnimationFrame(animationTimer);
+  audio.pause();
+  players.forEach(p=>p.classList.remove("flash"));
+  result.style.display="block";
+  document.getElementById("resultScore").textContent="スコア："+score;
+}
+
+audio.addEventListener("ended",finishGame);
+
+start.addEventListener("click",startGame);
+again.addEventListener("click",()=>{
+  resetScreen();
+  startGame();
+});
+
+resetScreen();
+</script>
+</body>
+</html>
