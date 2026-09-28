@@ -140,11 +140,15 @@ let audioUnlocked=false;
 function reset(){
   running=false;
   cancelAnimationFrame(raf);
+  start.disabled=false;
+  start.textContent="▶ スタート";
   audio.pause();
   audio.currentTime=0;
   game.style.display="block";
   result.style.display="none";
   start.style.display="inline-block";
+  start.disabled=false;
+  start.textContent="▶ スタート";
 
   players.forEach((p,i)=>{
     p.classList.remove("active","flash");
@@ -269,7 +273,8 @@ async function unlockAudio(){
 
 async function startGame(){
   reset();
-  start.style.display="none";
+  start.disabled=true;
+  start.textContent="▶ 準備中";
 
   if(!await unlockAudio()){
     alert("音源を再生できませんでした。ページを再読み込みして、もう一度お試しください。");
@@ -291,6 +296,7 @@ async function startGame(){
     return;
   }
 
+  start.textContent="▶ 再生中";
   beatNo=-1;
   sync();
 }
