@@ -80,7 +80,7 @@ h1{font-size:28px;margin:16px 8px 4px}.sub{color:#666;margin:0 8px 10px}
   <div id="jp"></div>
  </div>
  <div class="info">音源の実際の拍位置に合わせて強・弱が切り替わります</div>
- <audio id="audio" src="chupka_wa_kamuy_ran.m4a" preload="auto"></audio>
+ <audio id="audio" src="./chupka_wa_kamuy_ran.m4a" preload="auto" playsinline></audio>
 </div>
 
 <div id="result">
@@ -320,22 +320,52 @@ pads.forEach((p,i)=>{
   p.addEventListener("pointerdown",()=>hit(i));
 });
 
+async function unlockAudio(){
+  if(audioUnlocked) return true;
+  try{
+    // スタートボタンを押した直後に一度だけ再生してブラウザの音声再生許可を取得する。
+    // その後すぐ停止するので、カウントダウン中に音は鳴らない。
+    audio.muted=true;
+    audio.currentTime=0;
+    await audio.play();
+    audio.pause();
+    audio.currentTime=0;
+    audio.muted=false;
+    audioUnlocked=true;
+    return true;
+  }catch(e){
+    audio.muted=false;
+    console.error("audio unlock failed",e);
+    return false;
+  }
+}
+
 async function startGame(){
   reset();
 
   start.style.display="none";
   players[0].classList.add("active");
 
-  running=true;
+  // 重要：カウントダウンを待ってからplay()すると、ブラウザによっては
+  // ユーザー操作の許可が切れて音が再生されない。先に音声再生を解禁する。
+  const unlocked=await unlockAudio();
+  if(!unlocked){
+    alert("音源を再生できませんでした。ページを再読み込みして、もう一度スタートしてください。");
+    reset();
+    return;
+  }
 
+  running=true;
   await countdown();
 
   if(!running) return;
 
   try{
     audio.currentTime=0;
+    audio.muted=false;
     await audio.play();
   }catch(e){
+    console.error("audio play failed",e);
     alert("音源を再生できませんでした。ページを再読み込みして、もう一度スタートしてください。");
     reset();
     return;
