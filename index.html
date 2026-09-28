@@ -15,7 +15,7 @@ h1{font-size:28px;margin:16px 8px 4px}.sub{color:#666;margin:0 8px 10px}
 #beat{height:34px;font-size:22px;font-weight:bold}
 .stage{position:relative;width:min(700px,94vw);aspect-ratio:1;margin:0 auto}
 .shintoko{
- position:absolute;left:50%;top:50%;width:64%;height:64%;
+ position:absolute;left:50%;top:50%;width:68%;height:68%;
  transform:translate(-50%,-50%);background:#050505;border-radius:50%;
  box-shadow:0 0 0 9px #333;z-index:1;
 }
@@ -30,9 +30,9 @@ h1{font-size:28px;margin:16px 8px 4px}.sub{color:#666;margin:0 8px 10px}
 .player.flash .playerName{background:#fff15a}
 
 /* 3つとも最初から黒いしんとこの上に置く */
-#player1{left:50%;top:23%;transform:translate(-50%,-50%)}
-#player2{left:32%;top:68%;transform:translate(-50%,-50%)}
-#player3{left:68%;top:68%;transform:translate(-50%,-50%)}
+#player1{left:50%;top:25%;transform:translate(-50%,-50%)}
+#player2{left:31%;top:67%;transform:translate(-50%,-50%)}
+#player3{left:69%;top:67%;transform:translate(-50%,-50%)}
 
 #result{display:none;width:min(620px,90vw);margin:15px auto;padding:25px;background:white;border-radius:16px;font-size:22px}
 #resultScore{font-size:30px;font-weight:bold;margin:12px}
@@ -91,30 +91,29 @@ h1{font-size:28px;margin:16px 8px 4px}.sub{color:#666;margin:0 8px 10px}
 </div>
 
 <script>
-/*
-  この音源そのものから検出した拍位置。
-  各時刻で「強/弱」を切り替えるため、固定間隔ではなく音源の位置をそのまま使う。
-*/
 const BEATS=[
-  0.416,0.896,1.376,1.856,2.304,2.752,3.232,3.712,4.192,
-  4.704,5.184,5.664,6.144,6.624,7.072,7.552,8.032,8.544,
-  8.992,9.440,9.888,10.336,10.816,11.296,11.776,12.288,
-  12.768,13.248,13.696,14.176,14.624,15.104,15.584,16.032,
-  16.480,16.992,17.440,17.920,18.400,18.880,19.360,19.840,
-  20.288,20.768,21.248,21.728,22.176,22.624,23.136,23.584,
-  24.032,24.512,24.992,25.504,25.952,26.400,26.848,27.328,
-  27.808,28.256,28.736,29.248,29.728,30.176,30.656,31.136,31.584
+0.416,0.896,1.376,1.856,2.304,2.752,3.232,3.712,4.192,
+4.704,5.184,5.664,6.144,6.624,7.072,7.552,8.032,8.544,
+8.992,9.440,9.888,10.336,10.816,11.296,11.776,12.288,
+12.768,13.248,13.696,14.176,14.624,15.104,15.584,16.032,
+16.480,16.992,17.440,17.920,18.400,18.880,19.360,19.840,
+20.288,20.768,21.248,21.728,22.176,22.624,23.136,23.584,
+24.032,24.512,24.992,25.504,25.952,26.400,26.848,27.328,
+27.808,28.256,28.736,29.248,29.728,30.176,30.656,31.136,31.584
 ];
 
-/*
-  音源を波形で確認したフレーズ境界。
-  P2は「チュㇷ゚カー ワー」の開始、
-  P3は「カームイ ラン」の開始で参加。
-*/
-const PHRASE1=4.64;
-const PHRASE2=7.96;
-const PHRASE3=9.37;
-const PHRASE4=11.71;
+// 歌唱開始は音源の9拍目。
+// 輪唱は2拍ずつずらす：P1=9拍目、P2=11拍目、P3=13拍目。
+// 歌詞は4拍ごとに切り替える。
+const SONG_START_BEAT=9;
+const PLAYER_START_BEAT=[9,11,13];
+
+const LYRICS=[
+ ["チュㇷ゚カー ワー　カームイ　ラン","cupka wa kamuy ran","東の方から神が降りてきて"],
+ ["イーワニ　テッ カ　オーレウ","iwani tek ka orew","アオダモの枝に留まった"],
+ ["イーワ　トゥイサㇺ","iwa tuysam","岩山のそばで"],
+ ["エータンネー　マウ　アーヌー","etanne maw a=nu","その長い響きを私たちは聞く"]
+];
 
 const audio=document.getElementById("audio");
 const start=document.getElementById("start");
@@ -127,19 +126,22 @@ const scoreText=document.getElementById("score");
 const players=[1,2,3].map(i=>document.getElementById("player"+i));
 const statuses=[1,2,3].map(i=>document.getElementById("status"+i));
 const pads=[1,2,3].map(i=>document.getElementById("pad"+i));
+const ainu=document.getElementById("ainu");
+const roman=document.getElementById("roman");
+const jp=document.getElementById("jp");
 
 let running=false;
 let score=0;
 let beatNo=-1;
 let raf=null;
-let active=[true,false,false];
+let active=[false,false,false];
+let audioUnlocked=false;
 
 function reset(){
   running=false;
   cancelAnimationFrame(raf);
   audio.pause();
   audio.currentTime=0;
-
   game.style.display="block";
   result.style.display="none";
   start.style.display="inline-block";
@@ -152,179 +154,104 @@ function reset(){
   countText.textContent="";
   beatText.textContent="準備";
   scoreText.textContent="スコア：0";
-
-  active=[true,false,false];
   score=0;
   beatNo=-1;
+  active=[false,false,false];
 
-  setLyrics(
-    "スタートすると音源が始まります",
-    "",
-    ""
-  );
+  setLyrics("スタートすると音源が始まります","","");
+}
+
+function setLyrics(a,b,c){
+  ainu.textContent=a;
+  roman.textContent=b;
+  jp.textContent=c;
 }
 
 function countdown(){
   return new Promise(resolve=>{
-    const words=[
-      "１（シネプ）",
-      "２（トゥ）",
-      "３（レ）",
-      "シノッチャケ アン ロー"
-    ];
+    const words=["１（シネプ）","２（トゥ）","３（レ）","シノッチャケ アン ロー"];
     let i=0;
-
     function step(){
       countText.textContent=words[i++];
-      if(i<words.length){
-        setTimeout(step,1000);
-      }else{
-        setTimeout(()=>{
-          countText.textContent="";
-          resolve();
-        },1000);
-      }
+      if(i<words.length) setTimeout(step,1000);
+      else setTimeout(()=>{countText.textContent="";resolve()},1000);
     }
     step();
   });
 }
 
-function flash(strong){
-  players.forEach((p,i)=>{
-    p.classList.toggle("flash", strong && active[i]);
+function setActiveForBeat(i){
+  players.forEach((p,idx)=>{
+    const on=i>=PLAYER_START_BEAT[idx];
+    active[idx]=on;
+    p.classList.toggle("active",on);
+    if(idx===0) statuses[idx].textContent=on?"音源":"待機";
+    else if(!on) statuses[idx].textContent="待機";
   });
-  beatText.textContent=strong
-    ?"● １拍目（強）"
-    :"○ ２拍目（弱）";
+
+  // P2/P3は「開始！」を2拍ずつ遅らせて表示
+  if(i===PLAYER_START_BEAT[1]) statuses[1].textContent="開始！";
+  if(i===PLAYER_START_BEAT[2]) statuses[2].textContent="開始！";
 }
 
-function updateBeatFromAudio(){
+function flash(strong){
+  players.forEach((p,i)=>p.classList.toggle("flash",strong && active[i]));
+  beatText.textContent=strong ? "● １拍目（強）" : "○ ２拍目（弱）";
+}
+
+function updateBeat(){
   const t=audio.currentTime;
-
-  if(t<BEATS[0]){
-    return;
-  }
-
-  let i=BEATS.length-1;
+  let i=-1;
   for(let n=0;n<BEATS.length;n++){
-    if(BEATS[n]>t){
-      i=n-1;
-      break;
-    }
+    if(BEATS[n]<=t) i=n;
+    else break;
   }
+  if(i<0) return;
 
   if(i!==beatNo){
     beatNo=i;
-    flash(i%2===0);
+    setActiveForBeat(i);
+    // 音源の拍番号そのものを使うので、点滅間隔は固定値ではない
+    flash((i%2)===0);
   }
 }
 
-function announcePlayer(i){
-  active[i]=true;
-  players[i].classList.add("active");
-  statuses[i].textContent="開始！";
-
-  setTimeout(()=>{
-    if(running) statuses[i].textContent="参加中";
-  },900);
-}
-
-function setLyrics(ainu,roman,jp){
-  document.getElementById("ainu").textContent=ainu;
-  document.getElementById("roman").textContent=roman;
-  document.getElementById("jp").textContent=jp;
-}
-
-function updateLyricsAndPlayers(){
-  const t=audio.currentTime;
-
-  /*
-    4.64秒：「チュㇷ゚カー ワー」開始 → P2開始
-    7.96秒：「カームイ ラン」開始 → P3開始
-  */
-  if(!active[1] && t>=PHRASE1){
-    announcePlayer(1);
+function updateLyrics(){
+  const i=beatNo;
+  if(i<SONG_START_BEAT){
+    setLyrics("まもなく歌が始まります","","");
+    return;
   }
 
-  if(!active[2] && t>=PHRASE2){
-    announcePlayer(2);
-  }
-
-  if(t<PHRASE1){
-    setLyrics("前奏","","");
-  }else if(t<PHRASE2){
-    setLyrics(
-      "チュㇷ゚カー ワー",
-      "cupka wa",
-      "東の方から"
-    );
-  }else if(t<PHRASE3){
-    setLyrics(
-      "カームイ ラン",
-      "kamuy ran",
-      "神が降りてきて"
-    );
-  }else if(t<PHRASE4){
-    setLyrics(
-      "イーワニ テッ カ オーレウ",
-      "iwani tek ka orew",
-      "アオダモの枝に留まった"
-    );
-  }else{
-    setLyrics(
-      "イーワ トゥイサㇺ",
-      "iwa tuysam",
-      "岩山のそばで"
-    );
-    /*
-      11.71秒以降は最後のフレーズ
-      「エータンネー マウ アーヌー」へ切り替える。
-      音源終了までこの表示を維持する。
-    */
-    if(t>=16.84){
-      setLyrics(
-        "エータンネー マウ アーヌー",
-        "etanne maw a=nu",
-        "その長い響きを私たちは聞く"
-      );
-    }
-  }
+  // 4拍ごとに歌詞を進める
+  const lyricIndex=Math.floor((i-SONG_START_BEAT)/4);
+  const row=LYRICS[Math.min(lyricIndex,LYRICS.length-1)];
+  setLyrics(row[0],row[1],row[2]);
 }
 
 function sync(){
-  if(!running) return;
-
-  updateBeatFromAudio();
-  updateLyricsAndPlayers();
-
+  if(!running)return;
+  updateBeat();
+  updateLyrics();
   raf=requestAnimationFrame(sync);
 }
 
 function hit(i){
-  if(!running) return;
-
+  if(!running || !active[i]) return;
   const t=audio.currentTime;
   let nearest=Infinity;
-
-  for(const b of BEATS){
-    nearest=Math.min(nearest,Math.abs(t-b)*1000);
-  }
-
+  for(const b of BEATS) nearest=Math.min(nearest,Math.abs(t-b)*1000);
   if(nearest<=220){
     score++;
     scoreText.textContent="スコア："+score;
   }
 }
 
-pads.forEach((p,i)=>{
-  p.addEventListener("pointerdown",()=>hit(i));
-});
+pads.forEach((p,i)=>p.addEventListener("pointerdown",()=>hit(i)));
 
 async function unlockAudio(){
-  if(audioUnlocked) return true;
+  if(audioUnlocked)return true;
   try{
-    // スタートボタンを押した直後に一度だけ再生してブラウザの音声再生許可を取得する。
-    // その後すぐ停止するので、カウントダウン中に音は鳴らない。
     audio.muted=true;
     audio.currentTime=0;
     await audio.play();
@@ -335,38 +262,31 @@ async function unlockAudio(){
     return true;
   }catch(e){
     audio.muted=false;
-    console.error("audio unlock failed",e);
+    console.error(e);
     return false;
   }
 }
 
 async function startGame(){
   reset();
-
   start.style.display="none";
-  players[0].classList.add("active");
 
-  // 重要：カウントダウンを待ってからplay()すると、ブラウザによっては
-  // ユーザー操作の許可が切れて音が再生されない。先に音声再生を解禁する。
-  const unlocked=await unlockAudio();
-  if(!unlocked){
-    alert("音源を再生できませんでした。ページを再読み込みして、もう一度スタートしてください。");
+  if(!await unlockAudio()){
+    alert("音源を再生できませんでした。ページを再読み込みして、もう一度お試しください。");
     reset();
     return;
   }
 
-  running=true;
   await countdown();
-
-  if(!running) return;
+  running=true;
 
   try{
     audio.currentTime=0;
     audio.muted=false;
     await audio.play();
   }catch(e){
-    console.error("audio play failed",e);
-    alert("音源を再生できませんでした。ページを再読み込みして、もう一度スタートしてください。");
+    console.error(e);
+    alert("音源を再生できませんでした。ページを再読み込みして、もう一度お試しください。");
     reset();
     return;
   }
@@ -376,13 +296,10 @@ async function startGame(){
 }
 
 function finish(){
-  if(!running) return;
-
+  if(!running)return;
   running=false;
   cancelAnimationFrame(raf);
-
   players.forEach(p=>p.classList.remove("flash"));
-
   result.style.display="block";
   document.getElementById("resultScore").textContent="スコア："+score;
 }
@@ -390,7 +307,6 @@ function finish(){
 audio.addEventListener("ended",finish);
 start.addEventListener("click",startGame);
 again.addEventListener("click",startGame);
-
 reset();
 </script>
 </body>
