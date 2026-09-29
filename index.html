@@ -3,317 +3,371 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ウポポ輪唱リズムゲーム</title>
+<title>チュㇷ゚カー ワー カームイ ラン</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#eee9dc;color:#222;font-family:system-ui,"Yu Gothic",sans-serif;text-align:center}
-h1{font-size:28px;margin:16px 8px 4px}.sub{color:#666;margin:0 8px 10px}
-#start{font-size:21px;padding:13px 30px;border:0;border-radius:14px;cursor:pointer;background:#fff}
-#game{display:block}
-#countdown{height:78px;padding:10px}.countText{font-size:30px;font-weight:bold}
-#score{font-size:23px;font-weight:bold;margin:2px}
-#beat{height:34px;font-size:22px;font-weight:bold}
-.stage{position:relative;width:min(700px,94vw);aspect-ratio:1;margin:0 auto}
-.shintoko{
- position:absolute;left:50%;top:50%;width:68%;height:68%;
- transform:translate(-50%,-50%);background:#050505;border-radius:50%;
- box-shadow:0 0 0 9px #333;z-index:1;
+html,body{margin:0;width:110%;height:110%;overflow:hidden}
+body{background:#eee9dc;color:#222;font-family:system-ui,"Yu Gothic",sans-serif;text-align:center}
+h1{transform:translateX(-6%);font-size:clamp(20px,2.3vw,30px);margin:8px 8px 2px}
+.sub{font-size:clamp(12px,1.2vw,16px);color:#666;margin-bottom:4px}
+
+#countdown{height:48px;padding:4px}.countText{font-size:clamp(22px,2.5vw,32px);font-weight:800}
+#beat{display:none}
+.layout{height:calc(100vh - 112px);min-height:430px;display:grid;grid-template-columns:minmax(150px,18vw) minmax(420px,1fr) minmax(150px,18vw);align-items:center;gap:10px;padding:4px 12px}
+.side{background:#fff;border-radius:14px;padding:12px 8px;box-shadow:0 2px 8px #0001;min-height:220px}
+.side h2{font-size:18px;margin:0 0 8px}
+#micState{font-size:15px;font-weight:700;margin:7px}
+#meter{width:90%;height:15px;background:#ddd;border-radius:10px;margin:8px auto;overflow:hidden}
+#meterFill{height:100%;width:0;background:#4caf50}
+.small{font-size:12px;color:#666}
+#micResult{font-size:20px;font-weight:800;min-height:32px;margin-top:8px}
+#resultPanel{position:relative;z-index:100;display:block!important;visibility:visible!important;}#resultTitle{font-size:clamp(20px,2vw,28px);font-weight:900;margin:10px 0}
+#resultText{font-size:16px;line-height:1.8}
+.stageWrap{position:relative;height:100%;display:flex;align-items:center;justify-content:center;transform:translateX(-6%);overflow:visible}
+.stage{position:relative;width:min(64vh,48vw,560px);height:min(64vh,48vw,560px)}
+.shintoko{position:absolute;left:50%;top:45%;width:110%;height:110%;transform:translate(-50%,-50%);background:#050505;border-radius:50%;box-shadow:0 0 0 7px #333}
+.player{position:absolute;width:130px;z-index:5}
+.name{font-size:15px;font-weight:800;background:#fff;border-radius:7px;padding:3px 7px;margin-bottom:3px}
+.status{height:25px;font-size:16px;font-weight:700;color:#666}
+.pad{display:block;margin:auto;width:90px;height:90px;border-radius:50%;background:#d71920;border:6px solid #851018;cursor:pointer;transition:.08s;touch-action:manipulation;pointer-events:auto;user-select:none;-webkit-user-select:none}
+.pad:active{transform:scale(.92)}
+.player.flash .pad{background:#fff15a;border-color:#fff;box-shadow:0 0 28px 11px #ffd500;transform:scale(1.12)}
+#p1{left:50%;top:2%;transform:translate(-50%,-50%)}
+#p2{left:5%;top:70%;transform:translate(-50%,-50%)}
+#p3{left:95%;top:70%;transform:translate(-50%,-50%)}
+#footer{font-size:11px;color:#666;margin-top:3px}
+@media(max-width:850px){
+ .layout{grid-template-columns:1fr;overflow:auto;height:auto}
+ html,body{overflow:auto}.stage{width:min(72vw,480px);height:min(72vw,480px)}
 }
-.player{position:absolute;width:150px;z-index:5}
-.playerName{font-size:18px;font-weight:bold;background:#fff;border-radius:8px;padding:3px 8px;margin-bottom:3px}
-.status{height:30px;font-size:19px;font-weight:bold;color:#777}
-.pad{display:block;margin:auto;width:82px;height:82px;border-radius:50%;
- background:#d71920;border:7px solid #851018;cursor:pointer;
- transition:transform .08s,background .08s,box-shadow .08s}
-.player.active .pad{box-shadow:0 0 0 3px #888}
-.player.flash .pad{background:#fff15a;border-color:#fff;box-shadow:0 0 34px 14px #ffd500;transform:scale(1.13)}
-.player.flash .playerName{background:#fff15a}
-
-/* 3つとも最初から黒いしんとこの上に置く */
-#player1{left:50%;top:25%;transform:translate(-50%,-50%)}
-#player2{left:31%;top:67%;transform:translate(-50%,-50%)}
-#player3{left:69%;top:67%;transform:translate(-50%,-50%)}
-
-#result{display:none;width:min(620px,90vw);margin:15px auto;padding:25px;background:white;border-radius:16px;font-size:22px}
-#resultScore{font-size:30px;font-weight:bold;margin:12px}
-#again{font-size:18px;padding:10px 24px;border:0;border-radius:10px;margin-top:12px}
-.lyrics{width:min(700px,90vw);margin:8px auto;padding:12px;background:#fff;border-radius:14px}
-#ainu{font-size:22px;font-weight:bold}#roman{color:#666}#jp{font-size:17px;margin-top:4px}
-.info{font-size:13px;color:#666;margin:7px}
 </style>
 </head>
 <body>
 <h1>チュㇷ゚カー ワー　カームイ ラン</h1>
-<div class="sub">3人でつくるウポポ輪唱リズムゲーム</div>
-<button id="start">▶ スタート</button>
+<div class="sub"></div>
 
-<div id="game">
- <div id="countdown"><div class="countText" id="countText"></div></div>
- <div id="score">スコア：0</div>
- <div id="beat">準備</div>
+<div id="countdown"><div id="countText" class="countText"></div></div>
+<div id="beat">準備</div>
 
- <div class="stage">
-  <div class="shintoko"></div>
+<div class="layout">
+  <section class="side">
+    <h2>🎤 マイク判定</h2>
+    <div id="micState">準備中</div>
+    <div id="meter"><div id="meterFill"></div></div>
+    <div class="small">声を出したタイミングを判定します</div>
+    <div id="micResult"></div>
+  </section>
 
-  <div class="player" id="player1">
-   <div class="playerName">プレイヤー1</div>
-   <div class="status" id="status1">音源</div>
-   <button class="pad" id="pad1" aria-label="プレイヤー1"></button>
-  </div>
+  <main class="stageWrap">
+    <div class="stage">
+<button id="start" type="button"
+style="position:absolute;left:50%;top:calc(100% + 18px);
+transform:translateX(-50%);z-index:100000!important;
+display:block!important;visibility:visible!important;opacity:1!important;
+pointer-events:auto!important;padding:10px 24px;font-size:20px;
+font-weight:bold;white-space:nowrap;cursor:pointer;">
+▶ スタート
+</button>
 
-  <div class="player" id="player2">
-   <div class="playerName">プレイヤー2</div>
-   <div class="status" id="status2">待機</div>
-   <button class="pad" id="pad2" aria-label="プレイヤー2"></button>
-  </div>
+      <div class="shintoko"></div>
+      <div class="player" id="p1">
+        <div class="name">プレイヤー1（コンピュータ）</div>
+        <div class="status" id="s1">待機</div>
+        <div class="pad" aria-label="コンピュータ"></div>
+      </div>
+      <div class="player" id="p2">
+        <div class="name">プレイヤー2</div>
+        <div class="status" id="s2">待機</div>
+        <button class="pad" id="pad2" aria-label="プレイヤー2"></button>
+      </div>
+      <div class="player" id="p3">
+        <div class="name">プレイヤー3</div>
+        <div class="status" id="s3">待機</div>
+        <button class="pad" id="pad3" aria-label="プレイヤー3"></button>
+      </div>
+    </div>
+  </main>
 
-  <div class="player" id="player3">
-   <div class="playerName">プレイヤー3</div>
-   <div class="status" id="status3">待機</div>
-   <button class="pad" id="pad3" aria-label="プレイヤー3"></button>
-  </div>
- </div>
-
- <div class="lyrics">
-  <div id="ainu">スタートすると音源が始まります</div>
-  <div id="roman"></div>
-  <div id="jp"></div>
- </div>
- <div class="info">音源の実際の拍位置に合わせて強・弱が切り替わります</div>
- <audio id="audio" src="./chupka_wa_kamuy_ran.m4a" preload="auto" playsinline></audio>
+  <section class="side" id="resultPanel">
+    <h2>🏆 結果</h2>
+    <div id="resultTitle">まだ判定していません</div>
+    <div id="resultText">プレイヤー2・3の<br>入るタイミングを判定します。</div>
+  </section>
 </div>
-
-<div id="result">
- <div>🎉 結果発表 🎉</div>
- <div id="resultScore">スコア：0</div>
- <div>おつかれさまでした！</div>
- <button id="again">もう一度</button>
-</div>
+<div id="footer">P1の点滅だけが音源の拍に同期します。P2・P3はタップ時だけ点滅します。</div>
+<audio id="audio" src="chupka_wa_kamuy_ran.m4a" preload="auto"></audio>
 
 <script>
-const BEATS=[
-0.416,0.896,1.376,1.856,2.304,2.752,3.232,3.712,4.192,
-4.704,5.184,5.664,6.144,6.624,7.072,7.552,8.032,8.544,
-8.992,9.440,9.888,10.336,10.816,11.296,11.776,12.288,
-12.768,13.248,13.696,14.176,14.624,15.104,15.584,16.032,
-16.480,16.992,17.440,17.920,18.400,18.880,19.360,19.840,
-20.288,20.768,21.248,21.728,22.176,22.624,23.136,23.584,
-24.032,24.512,24.992,25.504,25.952,26.400,26.848,27.328,
-27.808,28.256,28.736,29.248,29.728,30.176,30.656,31.136,31.584
-];
+const AUDIO_BEATS = [0.405,1.344,2.283,3.221,4.149,5.195,6.101,7.040,8.000,8.949,9.888,10.773,11.755,12.715,13.664,14.603,15.541,16.437,17.408,18.368,19.307,20.245,21.184,22.144,23.083,24.021,24.981,25.920,26.837,27.776,28.736,29.675,30.613,31.552];
+const FIRST_SINGING_BEAT=8.000;
+const P2_EXPECTED=9.888;   // P1から2拍後
+const P3_EXPECTED=11.755;  // P1から4拍後
+const WINDOW=0.75;
+const HUMAN_WINDOW=0.85;
+const MIC_THRESHOLD=0.055;
+const MIC_DEBOUNCE_MS=700;
 
-// 歌唱開始は音源の9拍目。
-// 輪唱は2拍ずつずらす：P1=9拍目、P2=11拍目、P3=13拍目。
-// 歌詞は4拍ごとに切り替える。
-const SONG_START_BEAT=9;
-const PLAYER_START_BEAT=[9,11,13];
+const start=document.getElementById('start'), audio=document.getElementById('audio');
+const countText=document.getElementById('countText'), beat=document.getElementById('beat');
+const p1=document.getElementById('p1'), p2=document.getElementById('p2'), p3=document.getElementById('p3');
+const s1=document.getElementById('s1'),s2=document.getElementById('s2'),s3=document.getElementById('s3');
+const meterFill=document.getElementById('meterFill'),micState=document.getElementById('micState'),micResult=document.getElementById('micResult');
+const resultTitle=document.getElementById('resultTitle'),resultText=document.getElementById('resultText');
 
-const LYRICS=[
- ["チュㇷ゚カー ワー　カームイ　ラン","cupka wa kamuy ran","東の方から神が降りてきて"],
- ["イーワニ　テッ カ　オーレウ","iwani tek ka orew","アオダモの枝に留まった"],
- ["イーワ　トゥイサㇺ","iwa tuysam","岩山のそばで"],
- ["エータンネー　マウ　アーヌー","etanne maw a=nu","その長い響きを私たちは聞く"]
-];
+let running=false, beatIndex=-1, raf=0, countdownRunning=false;
+let results={2:null,3:null}, micStream=null, analyser=null, micData=null, micActive=false, lastVoice=0;
+let voiceFrames=0;
+let micCtx=null;
 
-const audio=document.getElementById("audio");
-const start=document.getElementById("start");
-const again=document.getElementById("again");
-const game=document.getElementById("game");
-const result=document.getElementById("result");
-const countText=document.getElementById("countText");
-const beatText=document.getElementById("beat");
-const scoreText=document.getElementById("score");
-const players=[1,2,3].map(i=>document.getElementById("player"+i));
-const statuses=[1,2,3].map(i=>document.getElementById("status"+i));
-const pads=[1,2,3].map(i=>document.getElementById("pad"+i));
-const ainu=document.getElementById("ainu");
-const roman=document.getElementById("roman");
-const jp=document.getElementById("jp");
-
-let running=false;
-let score=0;
-let beatNo=-1;
-let raf=null;
-let active=[false,false,false];
-let audioUnlocked=false;
-
-function reset(){
-  running=false;
-  cancelAnimationFrame(raf);
-  start.disabled=false;
-  start.textContent="▶ スタート";
-  audio.pause();
-  audio.currentTime=0;
-  game.style.display="block";
-  result.style.display="none";
-  start.style.display="inline-block";
-  start.disabled=false;
-  start.textContent="▶ スタート";
-
-  players.forEach((p,i)=>{
-    p.classList.remove("active","flash");
-    statuses[i].textContent=i===0?"音源":"待機";
-  });
-
-  countText.textContent="";
-  beatText.textContent="準備";
-  scoreText.textContent="スコア：0";
-  score=0;
-  beatNo=-1;
-  active=[false,false,false];
-
-  setLyrics("スタートすると音源が始まります","","");
+function flashCP(on){
+  p1.classList.toggle('flash',on);
+  beat.textContent=on?'● CP拍':'';
+  setTimeout(()=>p1.classList.remove('flash'),150);
 }
-
-function setLyrics(a,b,c){
-  ainu.textContent=a;
-  roman.textContent=b;
-  jp.textContent=c;
+function flashHuman(n){
+  const p=n===2?p2:p3;
+  p.classList.add('flash');
+  setTimeout(()=>p.classList.remove('flash'),180);
 }
+function resetUI(){
+  running=false; countdownRunning=false; cancelAnimationFrame(raf);
+  audio.pause(); audio.currentTime=0; beatIndex=-1;
+  countText.textContent=''; beat.textContent='';
+  s1.textContent='待機';s2.textContent='待機';s3.textContent='待機';
+  p1.classList.remove('flash');p2.classList.remove('flash');p3.classList.remove('flash');
+  results={2:null,3:null}; voiceFrames=0; lastVoice=0; resultTitle.textContent='まだ判定していません';
+  resultText.innerHTML='プレイヤー2・3の<br>入るタイミングを判定します。';
+  micResult.textContent='';
+}
+async function unlockAudio(){
+  try{
+    audio.muted=true; const pr=audio.play(); if(pr) await pr; audio.pause(); audio.currentTime=0; audio.muted=false;
+  }catch(e){}
+}
+async function startMic(){
+  try{
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('no mic');
+    if(micStream) micStream.getTracks().forEach(t=>t.stop());
+    micStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+    micCtx=new (window.AudioContext||window.webkitAudioContext)();
+    await micCtx.resume();
+    const src=micCtx.createMediaStreamSource(micStream);
+    analyser=micCtx.createAnalyser();
+    analyser.fftSize=1024;
+    analyser.smoothingTimeConstant=.08;
+    src.connect(analyser);
+    micData=new Uint8Array(analyser.fftSize);
+    micActive=true;
+    micState.textContent='マイクON（開始タイミング付近だけ判定）';
+    listenMic();
+  }catch(e){
+    micActive=false;
+    micState.textContent='マイクOFF（タップで判定できます）';
+  }
+}
+function listenMic(){
+  if(!analyser){requestAnimationFrame(listenMic);return;}
+  analyser.getByteTimeDomainData(micData);
+  let sum=0;
+  for(let i=0;i<micData.length;i++){const v=(micData[i]-128)/128;sum+=v*v}
+  const rms=Math.sqrt(sum/micData.length);
+  meterFill.style.width=Math.min(100,Math.max(0,rms*500))+'%';
 
+  if(running){
+    const t=currentGameTime();
+    const n=nextHuman();
+    const expected=n===2?P2_EXPECTED:(n===3?P3_EXPECTED:null);
+    // 予定開始の前後だけマイクを判定。早すぎる環境音は絶対に次の人へ進めない。
+    const inWindow=expected!==null && Math.abs(t-expected)<=HUMAN_WINDOW;
+    if(inWindow && rms>=MIC_THRESHOLD){
+      voiceFrames++;
+      if(voiceFrames>=2 && performance.now()-lastVoice>MIC_DEBOUNCE_MS){
+        lastVoice=performance.now();
+        voiceFrames=0;
+        handleHumanEvent('mic');
+      }
+    }else if(!inWindow){
+      voiceFrames=0;
+    }else if(rms<MIC_THRESHOLD){
+      voiceFrames=0;
+    }
+  }
+  requestAnimationFrame(listenMic);
+}
+function currentGameTime(){return audio.currentTime}
+function nextHuman(){
+  if(results[2]===null) return 2;
+  if(results[3]===null) return 3;
+  return null;
+}
+function handleHumanEvent(source, playerNumber=null){
+  if(!running)return;
+  const n=playerNumber || nextHuman();
+  if(n===null)return;
+  const expected=n===2?P2_EXPECTED:P3_EXPECTED;
+  const t=currentGameTime();
+  const diff=t-expected;
+
+  // タップ・発声した瞬間は必ずその丸を光らせる
+  flashHuman(n);
+
+  // 早すぎる/遅すぎる入力は「今回の判定を消費しない」。
+  // これで環境音や誤タップでP2を飛ばしてP3になることを防ぐ。
+  if(Math.abs(diff)>WINDOW){
+    const msg=diff<0?'まだ早い':'もう少し早く';
+    if(source==='mic') micResult.textContent=`🎤 P${n}：${msg}（${diff>=0?'+':''}${diff.toFixed(1)}秒）`;
+    else micResult.textContent=`👆 P${n}：${msg}（${diff>=0?'+':''}${diff.toFixed(1)}秒）`;
+    return;
+  }
+
+  results[n]=true;
+  if(n===2)s2.textContent='OK';
+  else s3.textContent='OK';
+  micResult.textContent=(source==='mic'?'🎤 ':'👆 ')+`P${n}：タイミングOK（${diff>=0?'+':''}${diff.toFixed(1)}秒）`;
+  updateResult();
+}
+function updateResult(){
+  const done=Object.values(results).filter(v=>v!==null);
+  if(done.length<2)return;
+  const ok=done.filter(Boolean).length;
+  if(ok===2) resultTitle.textContent='ソンノピリカ☆☆';
+  else if(ok===1) resultTitle.textContent='ピリカ☆';
+  else resultTitle.textContent='アリリキアンロー';
+  resultText.innerHTML=`P2：${results[2]?'タイミングOK':'タイミング外'}<br>P3：${results[3]?'タイミングOK':'タイミング外'}`;
+}
 function countdown(){
   return new Promise(resolve=>{
-    const words=["１（シネプ）","２（トゥ）","３（レ）","シノッチャケ アン ロー"];
+    const words=['１（シネプ）','２（トゥ）','３（レ）','シノッチャケ アン ロー'];
     let i=0;
-    function step(){
-      countText.textContent=words[i++];
-      if(i<words.length) setTimeout(step,1000);
-      else setTimeout(()=>{countText.textContent="";resolve()},1000);
-    }
+    const step=()=>{countText.textContent=words[i++]; if(i<words.length)setTimeout(step,1000);else setTimeout(()=>{countText.textContent='';resolve()},1000)};
     step();
   });
 }
-
-function setActiveForBeat(i){
-  players.forEach((p,idx)=>{
-    const on=i>=PLAYER_START_BEAT[idx];
-    active[idx]=on;
-    p.classList.toggle("active",on);
-    if(idx===0) statuses[idx].textContent=on?"音源":"待機";
-    else if(!on) statuses[idx].textContent="待機";
-  });
-
-  // P2/P3は「開始！」を2拍ずつ遅らせて表示
-  if(i===PLAYER_START_BEAT[1]) statuses[1].textContent="開始！";
-  if(i===PLAYER_START_BEAT[2]) statuses[2].textContent="開始！";
-}
-
-function flash(strong){
-  players.forEach((p,i)=>p.classList.toggle("flash",strong && active[i]));
-  beatText.textContent=strong ? "● １拍目（強）" : "○ ２拍目（弱）";
-}
-
-function updateBeat(){
-  const t=audio.currentTime;
-  let i=-1;
-  for(let n=0;n<BEATS.length;n++){
-    if(BEATS[n]<=t) i=n;
-    else break;
-  }
-  if(i<0) return;
-
-  if(i!==beatNo){
-    beatNo=i;
-    setActiveForBeat(i);
-    // 音源の拍番号そのものを使うので、点滅間隔は固定値ではない
-    flash((i%2)===0);
-  }
-}
-
-function updateLyrics(){
-  const i=beatNo;
-  if(i<SONG_START_BEAT){
-    setLyrics("まもなく歌が始まります","","");
-    return;
-  }
-
-  // 4拍ごとに歌詞を進める
-  const lyricIndex=Math.floor((i-SONG_START_BEAT)/4);
-  const row=LYRICS[Math.min(lyricIndex,LYRICS.length-1)];
-  setLyrics(row[0],row[1],row[2]);
-}
-
-function sync(){
+function syncCP(){
   if(!running)return;
-  updateBeat();
-  updateLyrics();
-  raf=requestAnimationFrame(sync);
-}
-
-function hit(i){
-  if(!running || !active[i]) return;
   const t=audio.currentTime;
-  let nearest=Infinity;
-  for(const b of BEATS) nearest=Math.min(nearest,Math.abs(t-b)*1000);
-  if(nearest<=220){
-    score++;
-    scoreText.textContent="スコア："+score;
+  while(beatIndex+1<AUDIO_BEATS.length && t>=AUDIO_BEATS[beatIndex+1]){
+    beatIndex++;
+    if(AUDIO_BEATS[beatIndex]>=FIRST_SINGING_BEAT) flashCP(true);
   }
+  // P2/P3開始表示は2拍ずつ
+  if(t>=P2_EXPECTED && s2.textContent==='待機')s2.textContent='開始！';
+  if(t>=P3_EXPECTED && s3.textContent==='待機')s3.textContent='開始！';
+  raf=requestAnimationFrame(syncCP);
 }
-
-pads.forEach((p,i)=>p.addEventListener("pointerdown",()=>hit(i)));
-
-async function unlockAudio(){
-  if(audioUnlocked)return true;
-  try{
-    audio.muted=true;
-    audio.currentTime=0;
-    await audio.play();
-    audio.pause();
-    audio.currentTime=0;
-    audio.muted=false;
-    audioUnlocked=true;
-    return true;
-  }catch(e){
-    audio.muted=false;
-    console.error(e);
-    return false;
-  }
-}
-
 async function startGame(){
-  reset();
-  start.disabled=true;
-  start.textContent="▶ 準備中";
-
-  if(!await unlockAudio()){
-    alert("音源を再生できませんでした。ページを再読み込みして、もう一度お試しください。");
-    reset();
-    return;
-  }
-
+  if(running||countdownRunning)return;
+  countdownRunning=true; start.disabled=true; start.textContent='準備中…';
+  resetUI(); countdownRunning=true;
+  await unlockAudio(); startMic();
   await countdown();
-  running=true;
-
-  try{
-    audio.currentTime=0;
-    audio.muted=false;
-    await audio.play();
-  }catch(e){
-    console.error(e);
-    alert("音源を再生できませんでした。ページを再読み込みして、もう一度お試しください。");
-    reset();
-    return;
-  }
-
-  start.textContent="▶ 再生中";
-  beatNo=-1;
-  sync();
+  audio.currentTime=0; beatIndex=-1;
+  try{await audio.play()}catch(e){micState.textContent='音源を再生できませんでした';start.disabled=false;countdownRunning=false;return}
+  running=true;countdownRunning=false;start.textContent='再生中…';
+  s1.textContent='歌う';
+  syncCP();
 }
-
 function finish(){
   if(!running)return;
-  running=false;
-  cancelAnimationFrame(raf);
-  players.forEach(p=>p.classList.remove("flash"));
-  result.style.display="block";
-  document.getElementById("resultScore").textContent="スコア："+score;
+  running=false; cancelAnimationFrame(raf); p1.classList.remove('flash');
+  start.disabled=false;start.textContent='▶ もう一度';
+  s1.textContent='終了';
+  // 最後まで入らなかった人は「タイミング外」として確定
+  if(results[2]===null){results[2]=false;s2.textContent='タイミング外';}
+  if(results[3]===null){results[3]=false;s3.textContent='タイミング外';}
+  updateResult();
 }
+function tapPad(n){
+  // P2/P3はタップした瞬間だけ点滅。ゲーム外でも反応は見せる。
+  flashHuman(n);
+  if(!running){
+    micResult.textContent='▶ スタート後にタイミング判定します';
+    return;
+  }
+  handleHumanEvent('tap',n);
+}
+document.getElementById('pad2').addEventListener('pointerdown',(e)=>{e.preventDefault();tapPad(2)});
+document.getElementById('pad3').addEventListener('pointerdown',(e)=>{e.preventDefault();tapPad(3)});
+document.getElementById('pad2').addEventListener('click',(e)=>e.preventDefault());
+document.getElementById('pad3').addEventListener('click',(e)=>e.preventDefault());
+audio.addEventListener('ended',finish);
+start.addEventListener('click',startGame);
+resetUI();
+</script>
 
-audio.addEventListener("ended",finish);
-start.addEventListener("click",startGame);
-again.addEventListener("click",startGame);
-reset();
+<div id="fixedResultPanel" style="position:fixed;right:18px;top:120px;transform:none;width:220px;min-height:180px;box-sizing:border-box;background:#fff;border:4px solid #333;border-radius:18px;padding:18px;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.2);">
+<div style="font-size:24px;font-weight:bold;margin-bottom:14px;">🏆 結果</div>
+<div id="fixedResultText" style="font-size:22px;font-weight:bold;">—</div>
+</div>
+<script>
+(function(){
+ const panel=document.getElementById('fixedResultPanel');
+ const text=document.getElementById('fixedResultText');
+ function syncResult(){
+   if (typeof running !== 'undefined' && running) {
+     text.textContent='—';
+     panel.style.display='flex';
+     return;
+   }
+   const sels=['#resultText','#resultTitle','.resultText','.result-title','#result'];
+   for(const sel of sels){
+     const el=document.querySelector(sel);
+     if(el){
+       const v=el.textContent.trim();
+       if(v && v!=='—' && v!=='結果' && v!=='🏆 結果') text.textContent=v;
+     }
+   }
+   panel.style.display='flex';
+ }
+ setInterval(syncResult,100);
+ syncResult();
+})();
+</script>
+
+<script>
+(function(){
+  let tapAudioCtx = null;
+  function playTon(){
+    try{
+      tapAudioCtx = tapAudioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if(tapAudioCtx.state === "suspended") tapAudioCtx.resume();
+      const now = tapAudioCtx.currentTime;
+      const osc = tapAudioCtx.createOscillator();
+      const gain = tapAudioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(180, now);
+      osc.frequency.exponentialRampToValueAtTime(110, now + 0.10);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.42, now + 0.008);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.14);
+      osc.connect(gain);
+      gain.connect(tapAudioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.15);
+    }catch(e){}
+  }
+  window.playTapTon = playTon;
+})();
+</script>
+
+<script>
+(function(){
+  function bindTapSound(){
+    const ids=["p2","p3","player2","player3"];
+    ids.forEach(function(id){
+      const el=document.getElementById(id);
+      if(el && !el.dataset.tapTonBound){
+        el.addEventListener("pointerdown", function(){
+          if(window.playTapTon) window.playTapTon();
+        });
+        el.dataset.tapTonBound="1";
+      }
+    });
+  }
+  bindTapSound();
+  setTimeout(bindTapSound,300);
+  setTimeout(bindTapSound,1000);
+})();
 </script>
 </body>
 </html>
